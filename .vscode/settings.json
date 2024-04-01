@@ -1,0 +1,38 @@
+{
+  "files.exclude": {
+    "**/.compiled/": true,
+    "**/node_modules/": true,
+    "**/yarn.lock": true,
+    "**/yarn-error.log/": true
+  },
+  "files.associations": {
+    ".eslintrc": "json",
+  },
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.formatOnSave": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "eslint.format.enable": true,
+  "eslint.workingDirectories": [
+    "."
+  ],
+  "eslint.validate": [
+    "typescript",
+  ],
+  "eslint.codeAction.showDocumentation": {
+    "enable": true
+  },
+  "[typescript]": {
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit",
+      "source.fixAll.stylelint": "explicit"
+    },
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features",
+    "editor.suggest.insertMode": "replace",
+    "files.insertFinalNewline": true
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "node": true
+  },
+  "extends": [
+    "airbnb-base",
+    "airbnb-typescript/base"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/*.ts"
+      ],
+      "parserOptions": {
+        "ecmaVersion": 2022,
+        "extraFileExtensions": [
+          ".json"
+        ],
+        "project": "tsconfig.json",
+        "sourceType": "module"
+      },
+      "rules": {
+        "@typescript-eslint/dot-notation": "off",
+        "@typescript-eslint/lines-between-class-members": "off",
+        "@typescript-eslint/semi": "off",
+        "@typescript-eslint/type-annotation-spacing": [
+          "error",
+          {
+            "after": true,
+            "before": false,
+            "overrides": {
+              "arrow": {
+                "after": true,
+                "before": true
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "env": {
+        "jest": true
+      },
+      "files": [
+        "**/*test.ts",
+        "**/*mock.ts"
+      ],
+      "rules": {
+        "class-methods-use-this": "off",
+        "import/no-extraneous-dependencies": [
+          "error",
+          {
+            "devDependencies": true
+          }
+        ],
+        "max-classes-per-file": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.d.ts"
+      ],
+      "rules": {
+        "no-var": "off",
+        "vars-on-top": "off"
+      }
+    }
+  ],
+  "rules": {
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": [
+          "**/*.test.ts"
+        ]
+      }
+    ],
+    "import/prefer-default-export": "off",
+    "lines-between-class-members": "off",
+    "max-len": [
+      "error",
+      180
+    ],
+    "no-console": "off",
+    "object-curly-newline": [
+      "error",
+      {
+        "consistent": true,
+        "minProperties": 13,
+        "multiline": true
+      }
+    ],
+    "object-curly-spacing": [
+      "error",
+      "always"
+    ],
+    "quote-props": [
+      "error",
+      "consistent"
+    ],
+    "quotes": [
+      "error",
+      "single"
+    ],
+    "radix": "off",
+    "semi": [
+      "error",
+      "never"
+    ]
+  }
+}

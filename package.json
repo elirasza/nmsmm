@@ -1,0 +1,41 @@
+{
+  "name": "nmsmm",
+  "license": "MIT",
+  "author": {
+    "email": "thibaud.laurent@elira.fr",
+    "name": "elirasza"
+  },
+  "description": "No Man's Sky Mod Merger",
+  "keywords": [
+    "nms",
+    "mod",
+    "merger",
+    "no",
+    "man",
+    "sky"
+  ],
+  "dependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/glob": "^8.1.0",
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.12"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.2",
+    "@typescript-eslint/eslint-plugin": "^7.4.0",
+    "@typescript-eslint/parser": "^7.4.0",
+    "eslint": "^8.57.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^18.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.3"
+  },
+  "scripts": {
+    "reinstall": "rm -rf node_modules && rm -f yarn-error.log && yarn install --check-files",
+    "start": "node .compiled/index.js",
+    "compile": "rm -rf .compiled && tsc",
+    "lint": "eslint --max-warnings 0",
+    "lint:all": "yarn lint 'src/**/*.{ts,tsx}'"
+  }
+}

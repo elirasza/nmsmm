@@ -1,0 +1,22 @@
+# OS specific directories
+.DS_Store
+
+# Packages
+/node_modules
+yarn-error.log*
+yarn-debug.log*
+.yarn-integrity
+
+# Compiled files
+.compiled/
+
+# Temporary files
+.banks/
+.cache/
+.extract/
+.merge/
+*.log
+mods/*
+
+# Keep
+!.keep
