@@ -17,7 +17,7 @@ const PATH_TMP_MERGE = resolve('.merge')
 const REGEX_STEAM_LIBRARY = /"path"\s*"(.+)"/g
 const REGEX_BANK_CONTENT = /^(\d+)\s+\d*.?\d+\s[b]?[Kb]?[Mb]?[Gb]?\s(\S+)/
 
-const FILES = {} as Record<string, { bank: string, id: number, ready: boolean }>
+const FILES = {} as Record<string, { bank: string, id: number, extracted: boolean }>
 
 const CONFIG = {
   game: null as string,
@@ -97,12 +97,11 @@ const retrieveBanks = async () => {
       }
 
       const content = await readFile(bankNameInStorage, 'utf8')
+      const contentMatch = content.split('\n').filter(Boolean).map((line) => line.match(REGEX_BANK_CONTENT))
 
-      content.split('\n').filter(Boolean).map((line) => line.match(REGEX_BANK_CONTENT)).forEach((match) => {
-        FILES[match[2]] = { bank: bankNameInGame, id: parseInt(match[1]), ready: false }
+      contentMatch.forEach((match) => {
+        FILES[match[2]] = { bank: bankNameInGame, id: parseInt(match[1]), extracted: false }
       })
-
-      return Promise.resolve()
     })
   } catch (error) {
     console.error(`[ERROR] Encountered an error while listing game files.\n${(error as Error).stack}`)
@@ -110,13 +109,18 @@ const retrieveBanks = async () => {
 }
 
 const extractFromBank = async (bank: string, id: number) => {
-  const target = join(PATH_TMP_MERGE, `${basename(bank)}_data`)
+  const source = join(PATH_TMP_MERGE, `${basename(bank)}_data`)
   await run(CONFIG.wine, [CONFIG.psarc, '-e', id.toString(), id.toString(), bank], { cwd: PATH_TMP_MERGE })
 
-  const files = await glob(join(target, '**/*'), { nodir: true })
-  await sequential(files, async (file) => move(file, join(PATH_TMP_MERGE, file.substring(target.length + 1))))
+  const files = await glob(join(source, '**/*'), { nodir: true })
+  await sequential(files, async (file) => {
+    const target = join(PATH_TMP_MERGE, file.substring(source.length + 1))
+    await move(file, target)
+    await run(CONFIG.wine, [CONFIG.mbincompiler, target])
+    await remove(target)
+  })
 
-  await remove(target)
+  await remove(source)
 }
 
 const extractMod = async (mod: string) => {
@@ -134,9 +138,9 @@ const extractMod = async (mod: string) => {
     await sequential(mbins, async (mbin) => {
       const file = FILES[mbin.substring(targetOutput.length + 1)]
 
-      if (!file.ready) {
+      if (!file.extracted) {
         await extractFromBank(file.bank, file.id)
-        file.ready = true
+        file.extracted = true
       }
 
       return run(CONFIG.wine, [CONFIG.mbincompiler, mbin])
