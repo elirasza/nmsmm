@@ -1,0 +1,6 @@
+[submodule "lib/psarc"]
+	path = lib/psarc
+	url = https://github.com/paul-hedrick/psarc
+[submodule "lib/MBINCompiler"]
+	path = lib/MBINCompiler
+	url = https://github.com/monkeyman192/MBINCompiler.git

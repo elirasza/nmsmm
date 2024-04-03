@@ -1,7 +1,7 @@
 import { spawn, SpawnOptions } from 'child_process'
 
 export const run = async (command: string, args: string[], options?: SpawnOptions) => new Promise<string>((resolve, reject) => {
-  const process = spawn(command, args, { stdio: ['inherit', 'pipe', 'pipe'], windowsHide: true, ...options })
+  const process = spawn(command, args, { windowsHide: true, ...options })
   const output = [] as string[]
 
   process.stdout.on('data', (data) => {

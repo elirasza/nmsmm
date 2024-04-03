@@ -6,9 +6,10 @@ import { run } from './utils/process'
 import { sequential } from './utils/promises'
 import { createDirectory, isDirectory, isFile, isFileOfType } from './utils/fs'
 
-const PATH_LIB_MBINCOMPILER = resolve('lib/MBINCompiler.exe')
-const PATH_LIB_PSARC = resolve('lib/psarc.exe')
+const PATH_LIB_MBINCOMPILER = resolve('lib/MBINCompiler/Build/Release/net7.0/linux-x64/MBINCompiler')
+const PATH_LIB_PSARC = resolve('lib/psarc/bin/rls/psarc')
 const PATH_MODS = resolve('mods')
+const PATH_PLAN = resolve('.plan')
 const PATH_STEAM_LIBRARIES = resolve(join(process.env.HOME, '.steam', 'root', 'config', 'libraryfolders.vdf'))
 const PATH_TMP_BANKS = resolve('.banks')
 const PATH_TMP_EXTRACT = resolve('.extract')
@@ -21,6 +22,7 @@ const FILES = {} as Record<string, { bank: string, id: number, extracted: boolea
 
 const CONFIG = {
   game: null as string,
+  git: null as string,
   mbincompiler: null as string,
   psarc: null as string,
   wine: null as string,
@@ -41,6 +43,17 @@ const prepareGame = async () => {
     console.log(`[INIT] Found game at ${CONFIG.game}.`)
   } catch (error) {
     console.error(`[INIT] Cannot read steam libraries, aborting.\n${(error as Error).stack}`)
+  }
+}
+
+const prepareGit = async () => {
+  console.log('[INIT] Resolving git...')
+  try {
+    CONFIG.git = await run('which', ['git'])
+
+    console.log(`[INIT] Found git at ${CONFIG.git}.`)
+  } catch (error) {
+    console.error(`[INIT] Cannot find git, aborting.\n${(error as Error).stack}`)
   }
 }
 
@@ -93,7 +106,7 @@ const retrieveBanks = async () => {
         console.log(`\t[TASK] Found ${bankName} bank.`)
       } else {
         console.log(`\t[TASK] Retrieving ${bank} bank...`)
-        await run('wine', [CONFIG.psarc, '-l', bankNameInGame], { cwd: PATH_TMP_BANKS })
+        await run(CONFIG.psarc, ['-l', bankNameInGame], { cwd: PATH_TMP_BANKS })
       }
 
       const content = await readFile(bankNameInStorage, 'utf8')
@@ -109,14 +122,15 @@ const retrieveBanks = async () => {
 }
 
 const extractFromBank = async (bank: string, id: number) => {
-  const source = join(PATH_TMP_MERGE, `${basename(bank)}_data`)
-  await run(CONFIG.wine, [CONFIG.psarc, '-e', id.toString(), id.toString(), bank], { cwd: PATH_TMP_MERGE })
+  console.log(`[TASK] Extracting ${bank} from game files...`)
+  await run(CONFIG.psarc, ['-e', id.toString(), id.toString(), bank], { cwd: PATH_TMP_MERGE })
 
+  const source = join(PATH_TMP_MERGE, `${basename(bank)}_data`)
   const files = await glob(join(source, '**/*'), { nodir: true })
   await sequential(files, async (file) => {
     const target = join(PATH_TMP_MERGE, file.substring(source.length + 1))
     await move(file, target)
-    await run(CONFIG.wine, [CONFIG.mbincompiler, target])
+    await run(CONFIG.mbincompiler, [target])
     await remove(target)
   })
 
@@ -131,7 +145,7 @@ const extractMod = async (mod: string) => {
     const targetOutput = join(PATH_TMP_EXTRACT, `${mod}_data`)
 
     await copyFile(source, target, constants.COPYFILE_FICLONE)
-    await run(CONFIG.wine, [CONFIG.psarc, '-x', resolve(target)], { cwd: PATH_TMP_EXTRACT })
+    await run(CONFIG.psarc, ['-x', resolve(target)], { cwd: PATH_TMP_EXTRACT })
 
     const mbins = await glob(join(targetOutput, '**/*.MBIN'), { maxDepth: 255 })
 
@@ -143,7 +157,7 @@ const extractMod = async (mod: string) => {
         file.extracted = true
       }
 
-      return run(CONFIG.wine, [CONFIG.mbincompiler, mbin])
+      await run(CONFIG.mbincompiler, [mbin])
     })
 
     await Promise.all([target, ...await glob(join(targetOutput, '*.txt')), ...mbins].map((residual) => remove(residual)))
@@ -177,7 +191,10 @@ const merge = async () => {
 }
 
 const main = async () => {
+  await remove(PATH_PLAN)
+
   await prepareGame()
+  await prepareGit()
   await prepareMBINCompiler()
   await preparePsarc()
   await prepareWine()

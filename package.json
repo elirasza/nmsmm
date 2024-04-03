@@ -33,6 +33,7 @@
   },
   "scripts": {
     "reinstall": "rm -rf node_modules && rm -f yarn-error.log && yarn install --check-files",
+    "submodule": "git submodule init && git submodule update && cd lib/psarc && make && cd - && cd lib/MBINCompiler && ./build-net7.sh  && cd -",
     "start": "node .compiled/index.js",
     "compile": "rm -rf .compiled && tsc",
     "lint": "eslint --max-warnings 0",
