@@ -17,6 +17,7 @@ yarn-debug.log*
 .merge/
 *.log
 mods/*
+output/*
 
 # Keep
 !.keep

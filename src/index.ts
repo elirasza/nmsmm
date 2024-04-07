@@ -1,5 +1,5 @@
 import { basename, join, resolve } from 'path'
-import { copyFile, readFile, readdir } from 'fs/promises'
+import { copyFile, readFile, readdir, writeFile } from 'fs/promises'
 import { constants, emptyDirSync, move, remove } from 'fs-extra'
 import { glob } from 'glob'
 import { run } from './utils/process'
@@ -8,7 +8,9 @@ import { createDirectory, isDirectory, isFile, isFileOfType } from './utils/fs'
 
 const PATH_LIB_MBINCOMPILER = resolve('lib/MBINCompiler/Build/Release/net7.0/linux-x64/MBINCompiler')
 const PATH_LIB_PSARC = resolve('lib/psarc/bin/rls/psarc')
+const PATH_LIB_PSARCPACKER = resolve('lib/psarcpacker/psarc.exe')
 const PATH_MODS = resolve('mods')
+const PATH_OUTPUT = resolve('output')
 const PATH_PLAN = resolve('.plan')
 const PATH_STEAM_LIBRARIES = resolve(join(process.env.HOME, '.steam', 'root', 'config', 'libraryfolders.vdf'))
 const PATH_TMP_BANKS = resolve('.banks')
@@ -24,7 +26,9 @@ const CONFIG = {
   game: null as string,
   git: null as string,
   mbincompiler: null as string,
+  mono: null as string,
   psarc: null as string,
+  psarcpacker: null as string,
   wine: null as string,
 }
 
@@ -68,6 +72,17 @@ const prepareMBINCompiler = async () => {
   }
 }
 
+const prepareMono = async () => {
+  console.log('[INIT] Resolving mono...')
+  try {
+    CONFIG.mono = await run('which', ['mono'])
+
+    console.log(`[INIT] Found mono at ${CONFIG.mono}.`)
+  } catch (error) {
+    console.error(`[INIT] Cannot find mono, aborting.\n${(error as Error).stack}`)
+  }
+}
+
 const preparePsarc = async () => {
   console.log('[INIT] Resolving psarc...')
   try {
@@ -76,6 +91,17 @@ const preparePsarc = async () => {
     console.log(`[INIT] Found psarc at ${CONFIG.psarc}.`)
   } catch (error) {
     console.error(`[INIT] Cannot find psarc at ${PATH_LIB_PSARC}, aborting.\n${(error as Error).stack}`)
+  }
+}
+
+const preparePsarcPacker = async () => {
+  console.log('[INIT] Resolving psarc (packer)...')
+  try {
+    CONFIG.psarcpacker = isFile(PATH_LIB_PSARCPACKER) && PATH_LIB_PSARCPACKER
+
+    console.log(`[INIT] Found psarc (packer) at ${CONFIG.psarcpacker}.`)
+  } catch (error) {
+    console.error(`[INIT] Cannot find psarc (packer) at ${PATH_LIB_PSARCPACKER}, aborting.\n${(error as Error).stack}`)
   }
 }
 
@@ -103,9 +129,9 @@ const retrieveBanks = async () => {
       const bankNameInGame = resolve(CONFIG.game, bank)
 
       if (isFile(bankNameInStorage)) {
-        console.log(`\t[TASK] Found ${bankName} bank.`)
+        console.log(`\tFound ${bankName} bank.`)
       } else {
-        console.log(`\t[TASK] Retrieving ${bank} bank...`)
+        console.log(`\tRetrieving ${bank} bank...`)
         await run(CONFIG.psarc, ['-l', bankNameInGame], { cwd: PATH_TMP_BANKS })
       }
 
@@ -122,7 +148,7 @@ const retrieveBanks = async () => {
 }
 
 const extractFromBank = async (bank: string, id: number) => {
-  console.log(`[TASK] Extracting ${bank} from game files...`)
+  console.log(`\t\tExtracting ${bank} at ${id} from game files...`)
   await run(CONFIG.psarc, ['-e', id.toString(), id.toString(), bank], { cwd: PATH_TMP_MERGE })
 
   const source = join(PATH_TMP_MERGE, `${basename(bank)}_data`)
@@ -138,7 +164,7 @@ const extractFromBank = async (bank: string, id: number) => {
 }
 
 const extractMod = async (mod: string) => {
-  console.log(`[TASK] Extracting ${mod}...`)
+  console.log(`\tExtracting ${mod}...`)
   try {
     const source = join(PATH_MODS, mod)
     const target = join(PATH_TMP_EXTRACT, mod)
@@ -157,7 +183,7 @@ const extractMod = async (mod: string) => {
         file.extracted = true
       }
 
-      await run(CONFIG.mbincompiler, [mbin])
+      await run(CONFIG.mbincompiler, [mbin], { cwd: PATH_TMP_EXTRACT })
     })
 
     await Promise.all([target, ...await glob(join(targetOutput, '*.txt')), ...mbins].map((residual) => remove(residual)))
@@ -167,7 +193,7 @@ const extractMod = async (mod: string) => {
 }
 
 const extract = async () => {
-  console.log('[TASK] Extracting mods to extraction directory...')
+  console.log('[TASK] Extracting mods...')
   try {
     emptyDirSync(PATH_TMP_EXTRACT)
     emptyDirSync(PATH_TMP_MERGE)
@@ -181,12 +207,72 @@ const extract = async () => {
   }
 }
 
+const mergeMod = async (mod: string) => {
+  const modName = mod.substring(0, mod.lastIndexOf('.pak_data'))
+
+  console.log(`\tMerging ${modName}...`)
+
+  const root = await run('git', ['rev-list', '--max-parents=0', 'HEAD'], { cwd: PATH_TMP_MERGE })
+  await run('git', ['checkout', root], { cwd: PATH_TMP_MERGE })
+
+  const modDirectory = join(PATH_TMP_EXTRACT, mod)
+  const modFiles = await readdir(modDirectory, { recursive: true })
+
+  await sequential(modFiles, async (modFile) => {
+    const source = join(modDirectory, modFile)
+    const destination = join(PATH_TMP_MERGE, modFile)
+    await move(source, destination, { overwrite: true })
+  })
+
+  await run('git', ['add', '.'], { cwd: PATH_TMP_MERGE })
+  await run('git', ['commit', '-m', modName], { cwd: PATH_TMP_MERGE })
+  await run('git', ['rebase', 'merge'], { cwd: PATH_TMP_MERGE })
+  await run('git', ['branch', '-f', 'merge'], { cwd: PATH_TMP_MERGE })
+}
+
 const merge = async () => {
   console.log('[TASK] Merging mods...')
   try {
-    console.log('PLACEHOLDER')
+    await run('git', ['init'], { cwd: PATH_TMP_MERGE })
+    await run('git', ['add', '.'], { cwd: PATH_TMP_MERGE })
+    await run('git', ['commit', '-m', 'base'], { cwd: PATH_TMP_MERGE })
+    await run('git', ['checkout', '-b', 'merge'], { cwd: PATH_TMP_MERGE })
+
+    const mods = await readdir(PATH_TMP_EXTRACT, { recursive: false })
+
+    await sequential(mods, async (mod) => mergeMod(mod))
   } catch (error) {
     console.error(`[ERROR] Encountered an error while merging mods.\n${(error as Error).stack}`)
+  }
+}
+
+const pack = async () => {
+  console.log('[TASK] Packing mods...')
+  try {
+    emptyDirSync(PATH_OUTPUT)
+    createDirectory(PATH_OUTPUT)
+
+    const list = [] as string[]
+
+    const files = await glob(join(PATH_TMP_MERGE, '**/*'), { nodir: true })
+    await sequential(files, async (file) => {
+      if (file.endsWith('.EXML')) {
+        await run(CONFIG.mbincompiler, [file], { cwd: PATH_TMP_MERGE })
+        await remove(file)
+
+        list.push(file.replace(`${PATH_TMP_MERGE}/`, '').replace('.EXML', '.MBIN'))
+      } else {
+        list.push(file.replace(`${PATH_TMP_MERGE}/`, ''))
+      }
+    })
+
+    const input = join(PATH_OUTPUT, 'mods.txt')
+    await writeFile(input, list.join('\n'))
+
+    const output = join(PATH_OUTPUT, 'merged.pak')
+    await run(CONFIG.wine, [CONFIG.psarcpacker, 'create', '-a', '--zlib', `--inputfile=${input}`, `--output=${output}`], { cwd: PATH_TMP_MERGE })
+  } catch (error) {
+    console.error(`[ERROR] Encountered an error while packing mods.\n${(error as Error).stack}`)
   }
 }
 
@@ -196,13 +282,16 @@ const main = async () => {
   await prepareGame()
   await prepareGit()
   await prepareMBINCompiler()
+  await prepareMono()
   await preparePsarc()
+  await preparePsarcPacker()
   await prepareWine()
 
   await retrieveBanks()
 
   await extract()
   await merge()
+  await pack()
 }
 
 main()
