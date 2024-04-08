@@ -11,7 +11,6 @@ const PATH_LIB_PSARC = resolve('lib/psarc/bin/rls/psarc')
 const PATH_LIB_PSARCPACKER = resolve('lib/psarcpacker/psarc.exe')
 const PATH_MODS = resolve('mods')
 const PATH_OUTPUT = resolve('output')
-const PATH_PLAN = resolve('.plan')
 const PATH_STEAM_LIBRARIES = resolve(join(process.env.HOME, '.steam', 'root', 'config', 'libraryfolders.vdf'))
 const PATH_TMP_BANKS = resolve('.banks')
 const PATH_TMP_EXTRACT = resolve('.extract')
@@ -211,23 +210,26 @@ const mergeMod = async (mod: string) => {
   const modName = mod.substring(0, mod.lastIndexOf('.pak_data'))
 
   console.log(`\tMerging ${modName}...`)
+  try {
+    const root = await run('git', ['rev-list', '--max-parents=0', 'HEAD'], { cwd: PATH_TMP_MERGE })
+    await run('git', ['checkout', root], { cwd: PATH_TMP_MERGE })
 
-  const root = await run('git', ['rev-list', '--max-parents=0', 'HEAD'], { cwd: PATH_TMP_MERGE })
-  await run('git', ['checkout', root], { cwd: PATH_TMP_MERGE })
+    const modDirectory = join(PATH_TMP_EXTRACT, mod)
+    const modFiles = await glob(join(modDirectory, '**/*'), { nodir: true })
 
-  const modDirectory = join(PATH_TMP_EXTRACT, mod)
-  const modFiles = await readdir(modDirectory, { recursive: true })
+    await sequential(modFiles, async (source) => {
+      const destination = join(PATH_TMP_MERGE, source)
+      await move(source, destination, { overwrite: true })
+    })
 
-  await sequential(modFiles, async (modFile) => {
-    const source = join(modDirectory, modFile)
-    const destination = join(PATH_TMP_MERGE, modFile)
-    await move(source, destination, { overwrite: true })
-  })
-
-  await run('git', ['add', '.'], { cwd: PATH_TMP_MERGE })
-  await run('git', ['commit', '-m', modName], { cwd: PATH_TMP_MERGE })
-  await run('git', ['rebase', 'merge'], { cwd: PATH_TMP_MERGE })
-  await run('git', ['branch', '-f', 'merge'], { cwd: PATH_TMP_MERGE })
+    await run('git', ['add', '.'], { cwd: PATH_TMP_MERGE })
+    await run('git', ['commit', '-m', modName], { cwd: PATH_TMP_MERGE })
+    await run('git', ['checkout', '-b', modName.replaceAll(' ', '_')], { cwd: PATH_TMP_MERGE })
+    await run('git', ['rebase', 'merge'], { cwd: PATH_TMP_MERGE })
+    await run('git', ['branch', '-f', 'merge'], { cwd: PATH_TMP_MERGE })
+  } catch (error) {
+    console.error(`[ERROR] Encountered an error while merging mod ${modName}.\n${(error as Error).stack}`)
+  }
 }
 
 const merge = async () => {
@@ -277,8 +279,6 @@ const pack = async () => {
 }
 
 const main = async () => {
-  await remove(PATH_PLAN)
-
   await prepareGame()
   await prepareGit()
   await prepareMBINCompiler()
