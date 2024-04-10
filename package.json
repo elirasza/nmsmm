@@ -33,11 +33,11 @@
   },
   "scripts": {
     "reinstall": "rm -rf node_modules && rm -f yarn-error.log && yarn install --check-files",
-    "submodule": "git submodule init && git submodule update && yarn submodule:mbincompiler && yarn submodule:psarc && yarn submodule:psarctool",
-    "submodule:mbincompiler": "cd lib/MBINCompiler && ./build-net7.sh  && cd -",
-    "submodule:psarc": "cd lib/psarc && make && cd -",
     "start": "node .compiled/index.js",
     "build": "rm -rf .compiled && tsc",
+    "submodule": "git submodule update --init --recursive --remote && yarn submodule:mbincompiler && yarn submodule:psarc",
+    "submodule:mbincompiler": "cd lib/MBINCompiler && rm -rf Build && ./build-net7.sh  && cd -",
+    "submodule:psarc": "cd lib/psarc && rm -rf bin && make && cd -",
     "lint": "eslint --max-warnings 0",
     "lint:all": "yarn lint 'src/**/*.{ts,tsx}'"
   }

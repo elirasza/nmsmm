@@ -278,6 +278,11 @@ const pack = async () => {
   }
 }
 
+const clean = async () => {
+  emptyDirSync(PATH_TMP_EXTRACT)
+  emptyDirSync(PATH_TMP_MERGE)
+}
+
 const main = async () => {
   await prepareGame()
   await prepareGit()
@@ -292,6 +297,7 @@ const main = async () => {
   await extract()
   await merge()
   await pack()
+  await clean()
 }
 
 main()
