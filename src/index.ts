@@ -45,7 +45,7 @@ const prepareGame = async () => {
 
     console.log(`[INIT] Found game at ${CONFIG.game}.`)
   } catch (error) {
-    console.error(`[INIT] Cannot read steam libraries, aborting.\n${(error as Error).stack}`)
+    console.error(`[INIT] Cannot read steam libraries, aborting.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -56,7 +56,7 @@ const prepareGit = async () => {
 
     console.log(`[INIT] Found git at ${CONFIG.git}.`)
   } catch (error) {
-    console.error(`[INIT] Cannot find git, aborting.\n${(error as Error).stack}`)
+    console.error(`[INIT] Cannot find git, aborting.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -67,7 +67,7 @@ const prepareMBINCompiler = async () => {
 
     console.log(`[INIT] Found MBINCompiler at ${CONFIG.mbincompiler}.`)
   } catch (error) {
-    console.error(`[INIT] Cannot find MBINCompiler at ${PATH_LIB_MBINCOMPILER}, aborting.\n${(error as Error).stack}`)
+    console.error(`[INIT] Cannot find MBINCompiler at ${PATH_LIB_MBINCOMPILER}, aborting.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -78,7 +78,7 @@ const prepareMono = async () => {
 
     console.log(`[INIT] Found mono at ${CONFIG.mono}.`)
   } catch (error) {
-    console.error(`[INIT] Cannot find mono, aborting.\n${(error as Error).stack}`)
+    console.error(`[INIT] Cannot find mono, aborting.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -89,7 +89,7 @@ const preparePsarc = async () => {
 
     console.log(`[INIT] Found psarc at ${CONFIG.psarc}.`)
   } catch (error) {
-    console.error(`[INIT] Cannot find psarc at ${PATH_LIB_PSARC}, aborting.\n${(error as Error).stack}`)
+    console.error(`[INIT] Cannot find psarc at ${PATH_LIB_PSARC}, aborting.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -100,7 +100,7 @@ const preparePsarcPacker = async () => {
 
     console.log(`[INIT] Found psarc (packer) at ${CONFIG.psarcpacker}.`)
   } catch (error) {
-    console.error(`[INIT] Cannot find psarc (packer) at ${PATH_LIB_PSARCPACKER}, aborting.\n${(error as Error).stack}`)
+    console.error(`[INIT] Cannot find psarc (packer) at ${PATH_LIB_PSARCPACKER}, aborting.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -111,7 +111,7 @@ const prepareWine = async () => {
 
     console.log(`[INIT] Found wine at ${CONFIG.wine}.`)
   } catch (error) {
-    console.error(`[INIT] Cannot find wine, aborting.\n${(error as Error).stack}`)
+    console.error(`[INIT] Cannot find wine, aborting.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -142,7 +142,7 @@ const retrieveBanks = async () => {
       })
     })
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while listing game files.\n${(error as Error).stack}`)
+    console.error(`[ERROR] Encountered an error while listing game files.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -187,7 +187,7 @@ const extractMod = async (mod: string) => {
 
     await Promise.all([target, ...await glob(join(targetOutput, '*.txt')), ...mbins].map((residual) => remove(residual)))
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while extracting ${mod}.\n${(error as Error).stack}`)
+    console.error(`[ERROR] Encountered an error while extracting ${mod}.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -202,7 +202,7 @@ const extract = async () => {
 
     await sequential(modsPak, async (mod) => extractMod(mod))
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while copying mods.\n${(error as Error).stack}`)
+    console.error(`[ERROR] Encountered an error while copying mods.\n${(error as Error).stack || ''}`)
   }
 }
 
@@ -215,10 +215,12 @@ const mergeMod = async (mod: string) => {
     await run('git', ['checkout', root], { cwd: PATH_TMP_MERGE })
 
     const modDirectory = join(PATH_TMP_EXTRACT, mod)
+    console.log(modDirectory)
     const modFiles = await glob(join(modDirectory, '**/*'), { nodir: true })
 
     await sequential(modFiles, async (source) => {
-      const destination = join(PATH_TMP_MERGE, source)
+      const destination = join(PATH_TMP_MERGE, source.replace(modDirectory, ''))
+      console.log(destination)
       await move(source, destination, { overwrite: true })
     })
 
@@ -228,7 +230,8 @@ const mergeMod = async (mod: string) => {
     await run('git', ['rebase', 'merge'], { cwd: PATH_TMP_MERGE })
     await run('git', ['branch', '-f', 'merge'], { cwd: PATH_TMP_MERGE })
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while merging mod ${modName}.\n${(error as Error).stack}`)
+    await run('git', ['rebase', '--abort'], { cwd: PATH_TMP_MERGE })
+    console.error(`[ERROR] Encountered an error while merging mod ${modName}.\n${(error as Error)}`)
   }
 }
 
@@ -244,7 +247,7 @@ const merge = async () => {
 
     await sequential(mods, async (mod) => mergeMod(mod))
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while merging mods.\n${(error as Error).stack}`)
+    console.error(`[ERROR] Encountered an error while merging mods.\n${(error as Error)}`)
   }
 }
 
@@ -274,7 +277,7 @@ const pack = async () => {
     const output = join(PATH_OUTPUT, 'merged.pak')
     await run(CONFIG.wine, [CONFIG.psarcpacker, 'create', '-a', '--zlib', `--inputfile=${input}`, `--output=${output}`], { cwd: PATH_TMP_MERGE })
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while packing mods.\n${(error as Error).stack}`)
+    console.error(`[ERROR] Encountered an error while packing mods.\n${(error as Error).stack || ''}`)
   }
 }
 
