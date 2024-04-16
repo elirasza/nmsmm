@@ -176,8 +176,7 @@ const extractMod = async (mod: string) => {
 
     await sequential(mbins, async (mbin) => {
       const file = FILES[mbin.substring(targetOutput.length + 1)]
-
-      if (!file.extracted) {
+      if (file && !file.extracted) {
         await extractFromBank(file.bank, file.id)
         file.extracted = true
       }
@@ -270,7 +269,7 @@ const pack = async () => {
     })
 
     const input = join(PATH_OUTPUT, 'mods.txt')
-    await writeFile(input, list.join('\n'))
+    await writeFile(input, list.sort().join('\n'))
 
     const output = join(PATH_OUTPUT, 'merged.pak')
     await run(CONFIG.wine, [CONFIG.psarcpacker, 'create', '-a', '--zlib', `--inputfile=${input}`, `--output=${output}`], { cwd: PATH_TMP_MERGE })
