@@ -147,7 +147,7 @@ const retrieveBanks = async () => {
 }
 
 const extractFromBank = async (bank: string, id: number) => {
-  console.log(`\t\tExtracting ${bank} at ${id} from game files...`)
+  console.log(`\t\t${bank} at ${id} from game files...`)
   await run(CONFIG.psarc, ['-e', id.toString(), id.toString(), bank], { cwd: PATH_TMP_MERGE })
 
   const source = join(PATH_TMP_MERGE, `${basename(bank)}_data`)
@@ -215,12 +215,11 @@ const mergeMod = async (mod: string) => {
     await run('git', ['checkout', root], { cwd: PATH_TMP_MERGE })
 
     const modDirectory = join(PATH_TMP_EXTRACT, mod)
-    console.log(modDirectory)
     const modFiles = await glob(join(modDirectory, '**/*'), { nodir: true })
 
     await sequential(modFiles, async (source) => {
       const destination = join(PATH_TMP_MERGE, source.replace(modDirectory, ''))
-      console.log(destination)
+      console.log(`\t\t${destination}`)
       await move(source, destination, { overwrite: true })
     })
 
@@ -244,7 +243,6 @@ const merge = async () => {
     await run('git', ['checkout', '-b', 'merge'], { cwd: PATH_TMP_MERGE })
 
     const mods = await readdir(PATH_TMP_EXTRACT, { recursive: false })
-
     await sequential(mods, async (mod) => mergeMod(mod))
   } catch (error) {
     console.error(`[ERROR] Encountered an error while merging mods.\n${(error as Error)}`)
