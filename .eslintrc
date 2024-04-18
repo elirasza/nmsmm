@@ -70,14 +70,7 @@
     }
   ],
   "rules": {
-    "import/no-extraneous-dependencies": [
-      "error",
-      {
-        "devDependencies": [
-          "**/*.test.ts"
-        ]
-      }
-    ],
+    "import/no-extraneous-dependencies": "off",
     "import/prefer-default-export": "off",
     "lines-between-class-members": "off",
     "max-len": [

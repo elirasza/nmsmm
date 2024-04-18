@@ -1,3 +1,4 @@
+import clc from 'cli-color'
 import { basename, join, resolve } from 'path'
 import { copyFile, readFile, readdir, writeFile } from 'fs/promises'
 import { constants, emptyDirSync, move, remove } from 'fs-extra'
@@ -43,9 +44,9 @@ const prepareGame = async () => {
       return isDirectory(attempt) ? attempt : game
     }, null)
 
-    console.log(`[INIT] Found game at ${CONFIG.game}.`)
+    console.log(clc.green(`[INIT] Found game at ${CONFIG.game}.`))
   } catch (error) {
-    console.error(`[INIT] Cannot read steam libraries, aborting.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[INIT] Cannot read steam libraries, aborting.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -54,9 +55,9 @@ const prepareGit = async () => {
   try {
     CONFIG.git = await run('which', ['git'])
 
-    console.log(`[INIT] Found git at ${CONFIG.git}.`)
+    console.log(clc.green(`[INIT] Found git at ${CONFIG.git}.`))
   } catch (error) {
-    console.error(`[INIT] Cannot find git, aborting.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[INIT] Cannot find git, aborting.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -65,9 +66,9 @@ const prepareMBINCompiler = async () => {
   try {
     CONFIG.mbincompiler = isFile(PATH_LIB_MBINCOMPILER) && PATH_LIB_MBINCOMPILER
 
-    console.log(`[INIT] Found MBINCompiler at ${CONFIG.mbincompiler}.`)
+    console.log(clc.green(`[INIT] Found MBINCompiler at ${CONFIG.mbincompiler}.`))
   } catch (error) {
-    console.error(`[INIT] Cannot find MBINCompiler at ${PATH_LIB_MBINCOMPILER}, aborting.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[INIT] Cannot find MBINCompiler at ${PATH_LIB_MBINCOMPILER}, aborting.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -76,9 +77,9 @@ const prepareMono = async () => {
   try {
     CONFIG.mono = await run('which', ['mono'])
 
-    console.log(`[INIT] Found mono at ${CONFIG.mono}.`)
+    console.log(clc.green(`[INIT] Found mono at ${CONFIG.mono}.`))
   } catch (error) {
-    console.error(`[INIT] Cannot find mono, aborting.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[INIT] Cannot find mono, aborting.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -87,9 +88,9 @@ const preparePsarc = async () => {
   try {
     CONFIG.psarc = isFile(PATH_LIB_PSARC) && PATH_LIB_PSARC
 
-    console.log(`[INIT] Found psarc at ${CONFIG.psarc}.`)
+    console.log(clc.green(`[INIT] Found psarc at ${CONFIG.psarc}.`))
   } catch (error) {
-    console.error(`[INIT] Cannot find psarc at ${PATH_LIB_PSARC}, aborting.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[INIT] Cannot find psarc at ${PATH_LIB_PSARC}, aborting.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -98,9 +99,9 @@ const preparePsarcPacker = async () => {
   try {
     CONFIG.psarcpacker = isFile(PATH_LIB_PSARCPACKER) && PATH_LIB_PSARCPACKER
 
-    console.log(`[INIT] Found psarc (packer) at ${CONFIG.psarcpacker}.`)
+    console.log(clc.green(`[INIT] Found psarc (packer) at ${CONFIG.psarcpacker}.`))
   } catch (error) {
-    console.error(`[INIT] Cannot find psarc (packer) at ${PATH_LIB_PSARCPACKER}, aborting.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[INIT] Cannot find psarc (packer) at ${PATH_LIB_PSARCPACKER}, aborting.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -109,9 +110,9 @@ const prepareWine = async () => {
   try {
     CONFIG.wine = await run('which', ['wine'])
 
-    console.log(`[INIT] Found wine at ${CONFIG.wine}.`)
+    console.log(clc.green(`[INIT] Found wine at ${CONFIG.wine}.`))
   } catch (error) {
-    console.error(`[INIT] Cannot find wine, aborting.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[INIT] Cannot find wine, aborting.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -128,9 +129,9 @@ const retrieveBanks = async () => {
       const bankNameInGame = resolve(CONFIG.game, bank)
 
       if (isFile(bankNameInStorage)) {
-        console.log(`\tFound ${bankName} bank.`)
+        console.log(clc.green(`\tFound ${bankName} bank.`))
       } else {
-        console.log(`\tRetrieving ${bank} bank...`)
+        console.log(clc.blue(`\tRetrieving ${bank} bank...`))
         await run(CONFIG.psarc, ['-l', bankNameInGame], { cwd: PATH_TMP_BANKS })
       }
 
@@ -142,24 +143,28 @@ const retrieveBanks = async () => {
       })
     })
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while listing game files.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[ERROR] Encountered an error while listing game files.\n${(error as Error).stack || ''}`))
   }
 }
 
 const extractFromBank = async (bank: string, id: number) => {
-  console.log(`\t\t${bank} at ${id} from game files...`)
-  await run(CONFIG.psarc, ['-e', id.toString(), id.toString(), bank], { cwd: PATH_TMP_MERGE })
+  console.log(clc.black(`\t\t${bank} at ${id} from game files...`))
+  try {
+    await run(CONFIG.psarc, ['-e', id.toString(), id.toString(), bank], { cwd: PATH_TMP_MERGE })
 
-  const source = join(PATH_TMP_MERGE, `${basename(bank)}_data`)
-  const files = await glob(join(source, '**/*'), { nodir: true })
-  await sequential(files, async (file) => {
-    const target = join(PATH_TMP_MERGE, file.substring(source.length + 1))
-    await move(file, target)
-    await run(CONFIG.mbincompiler, [target])
-    await remove(target)
-  })
+    const source = join(PATH_TMP_MERGE, `${basename(bank)}_data`)
+    const files = await glob(join(source, '**/*'), { nodir: true })
+    await sequential(files, async (file) => {
+      const target = join(PATH_TMP_MERGE, file.substring(source.length + 1))
+      await move(file, target)
+      await run(CONFIG.mbincompiler, [target])
+      await remove(target)
+    })
 
-  await remove(source)
+    await remove(source)
+  } catch (error) {
+    console.error(clc.red(`[ERROR] Encountered an error while extracting bank ${bank} at id ${id}.\n${(error as Error).stack || ''}`))
+  }
 }
 
 const extractMod = async (mod: string) => {
@@ -175,18 +180,24 @@ const extractMod = async (mod: string) => {
     const mbins = await glob(join(targetOutput, '**/*.MBIN'), { maxDepth: 255 })
 
     await sequential(mbins, async (mbin) => {
-      const file = FILES[mbin.substring(targetOutput.length + 1)]
+      const name = mbin.substring(targetOutput.length + 1)
+      const file = FILES[name]
       if (file && !file.extracted) {
         await extractFromBank(file.bank, file.id)
         file.extracted = true
       }
 
-      await run(CONFIG.mbincompiler, [mbin], { cwd: PATH_TMP_EXTRACT })
+      try {
+        await run(CONFIG.mbincompiler, [mbin], { cwd: PATH_TMP_EXTRACT })
+      } catch {
+        await move(mbin, join(PATH_TMP_MERGE, name))
+        console.error(clc.yellow(`[WARNING] Could not extract ${name}, passing it as-is.`))
+      }
     })
 
     await Promise.all([target, ...await glob(join(targetOutput, '*.txt')), ...mbins].map((residual) => remove(residual)))
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while extracting ${mod}.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[ERROR] Encountered an error while extracting ${mod}.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -201,7 +212,7 @@ const extract = async () => {
 
     await sequential(modsPak, async (mod) => extractMod(mod))
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while copying mods.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[ERROR] Encountered an error while copying mods.\n${(error as Error).stack || ''}`))
   }
 }
 
@@ -218,7 +229,7 @@ const mergeMod = async (mod: string) => {
 
     await sequential(modFiles, async (source) => {
       const destination = join(PATH_TMP_MERGE, source.replace(modDirectory, ''))
-      console.log(`\t\t${destination}`)
+      console.log(clc.black(`\t\t${destination}`))
       await move(source, destination, { overwrite: true })
     })
 
@@ -229,7 +240,7 @@ const mergeMod = async (mod: string) => {
     await run('git', ['branch', '-f', 'merge'], { cwd: PATH_TMP_MERGE })
   } catch (error) {
     await run('git', ['rebase', '--abort'], { cwd: PATH_TMP_MERGE })
-    console.error(`[ERROR] Encountered an error while merging mod ${modName}.\n${(error as Error)}`)
+    console.error(clc.red(`[ERROR] Encountered an error while merging mod ${modName}.\n${(error as Error)}`))
   }
 }
 
@@ -244,7 +255,7 @@ const merge = async () => {
     const mods = await readdir(PATH_TMP_EXTRACT, { recursive: false })
     await sequential(mods, async (mod) => mergeMod(mod))
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while merging mods.\n${(error as Error)}`)
+    console.error(clc.red(`[ERROR] Encountered an error while merging mods.\n${(error as Error)}`))
   }
 }
 
@@ -274,7 +285,7 @@ const pack = async () => {
     const output = join(PATH_OUTPUT, 'merged.pak')
     await run(CONFIG.wine, [CONFIG.psarcpacker, 'create', '-a', '--zlib', `--inputfile=${input}`, `--output=${output}`], { cwd: PATH_TMP_MERGE })
   } catch (error) {
-    console.error(`[ERROR] Encountered an error while packing mods.\n${(error as Error).stack || ''}`)
+    console.error(clc.red(`[ERROR] Encountered an error while packing mods.\n${(error as Error).stack || ''}`))
   }
 }
 
