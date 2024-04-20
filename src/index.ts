@@ -32,6 +32,21 @@ const CONFIG = {
   wine: null as string,
 }
 
+const STATS = {
+  warnings: [] as string[],
+  errors: [] as string[],
+}
+
+const logWarning = (message: string) => {
+  console.error(clc.yellow(message))
+  STATS.warnings.push(message)
+}
+
+const logError = (message: string, error: Error) => {
+  console.error(clc.red(`${message}.\n${(error as Error).stack || ''}`))
+  STATS.errors.push(message)
+}
+
 const prepareGame = async () => {
   console.log(`[INIT] Resolving steam libraries in ${PATH_STEAM_LIBRARIES}...`)
   try {
@@ -46,7 +61,7 @@ const prepareGame = async () => {
 
     console.log(clc.green(`[INIT] Found game at ${CONFIG.game}.`))
   } catch (error) {
-    console.error(clc.red(`[INIT] Cannot read steam libraries, aborting.\n${(error as Error).stack || ''}`))
+    logError('[INIT] Cannot read steam libraries, aborting.', error as Error)
   }
 }
 
@@ -57,7 +72,7 @@ const prepareGit = async () => {
 
     console.log(clc.green(`[INIT] Found git at ${CONFIG.git}.`))
   } catch (error) {
-    console.error(clc.red(`[INIT] Cannot find git, aborting.\n${(error as Error).stack || ''}`))
+    logError('[INIT] Cannot find git, aborting.', error as Error)
   }
 }
 
@@ -68,7 +83,7 @@ const prepareMBINCompiler = async () => {
 
     console.log(clc.green(`[INIT] Found MBINCompiler at ${CONFIG.mbincompiler}.`))
   } catch (error) {
-    console.error(clc.red(`[INIT] Cannot find MBINCompiler at ${PATH_LIB_MBINCOMPILER}, aborting.\n${(error as Error).stack || ''}`))
+    logError(`[INIT] Cannot find MBINCompiler at ${PATH_LIB_MBINCOMPILER}, aborting.`, error as Error)
   }
 }
 
@@ -79,7 +94,7 @@ const prepareMono = async () => {
 
     console.log(clc.green(`[INIT] Found mono at ${CONFIG.mono}.`))
   } catch (error) {
-    console.error(clc.red(`[INIT] Cannot find mono, aborting.\n${(error as Error).stack || ''}`))
+    logError('[INIT] Cannot find mono, aborting.', error as Error)
   }
 }
 
@@ -90,7 +105,7 @@ const preparePsarc = async () => {
 
     console.log(clc.green(`[INIT] Found psarc at ${CONFIG.psarc}.`))
   } catch (error) {
-    console.error(clc.red(`[INIT] Cannot find psarc at ${PATH_LIB_PSARC}, aborting.\n${(error as Error).stack || ''}`))
+    logError(`[INIT] Cannot find psarc at ${PATH_LIB_PSARC}, aborting.`, error as Error)
   }
 }
 
@@ -101,7 +116,7 @@ const preparePsarcPacker = async () => {
 
     console.log(clc.green(`[INIT] Found psarc (packer) at ${CONFIG.psarcpacker}.`))
   } catch (error) {
-    console.error(clc.red(`[INIT] Cannot find psarc (packer) at ${PATH_LIB_PSARCPACKER}, aborting.\n${(error as Error).stack || ''}`))
+    logError(`[INIT] Cannot find psarc (packer) at ${PATH_LIB_PSARCPACKER}, aborting.`, error as Error)
   }
 }
 
@@ -112,7 +127,7 @@ const prepareWine = async () => {
 
     console.log(clc.green(`[INIT] Found wine at ${CONFIG.wine}.`))
   } catch (error) {
-    console.error(clc.red(`[INIT] Cannot find wine, aborting.\n${(error as Error).stack || ''}`))
+    logError('[INIT] Cannot find wine, aborting.', error as Error)
   }
 }
 
@@ -143,7 +158,7 @@ const retrieveBanks = async () => {
       })
     })
   } catch (error) {
-    console.error(clc.red(`[ERROR] Encountered an error while listing game files.\n${(error as Error).stack || ''}`))
+    logError('[ERROR] Encountered an error while listing game files.', error as Error)
   }
 }
 
@@ -163,7 +178,7 @@ const extractFromBank = async (bank: string, id: number) => {
 
     await remove(source)
   } catch (error) {
-    console.error(clc.red(`[ERROR] Encountered an error while extracting bank ${bank} at id ${id}.\n${(error as Error).stack || ''}`))
+    logError(`[ERROR] Encountered an error while extracting bank ${bank} at id ${id}.`, error as Error)
   }
 }
 
@@ -191,13 +206,13 @@ const extractMod = async (mod: string) => {
         await run(CONFIG.mbincompiler, [mbin], { cwd: PATH_TMP_EXTRACT })
       } catch {
         await move(mbin, join(PATH_TMP_MERGE, name))
-        console.error(clc.yellow(`[WARNING] Could not extract ${name}, passing it as-is.`))
+        logWarning(`[WARNING] Could not extract ${name}, passing it as-is.`)
       }
     })
 
     await Promise.all([target, ...await glob(join(targetOutput, '*.txt')), ...mbins].map((residual) => remove(residual)))
   } catch (error) {
-    console.error(clc.red(`[ERROR] Encountered an error while extracting ${mod}.\n${(error as Error).stack || ''}`))
+    logError(`[ERROR] Encountered an error while extracting ${mod}.`, error as Error)
   }
 }
 
@@ -212,7 +227,7 @@ const extract = async () => {
 
     await sequential(modsPak, async (mod) => extractMod(mod))
   } catch (error) {
-    console.error(clc.red(`[ERROR] Encountered an error while copying mods.\n${(error as Error).stack || ''}`))
+    logError('[ERROR] Encountered an error while copying mods.', error as Error)
   }
 }
 
@@ -240,7 +255,7 @@ const mergeMod = async (mod: string) => {
     await run('git', ['branch', '-f', 'merge'], { cwd: PATH_TMP_MERGE })
   } catch (error) {
     await run('git', ['rebase', '--abort'], { cwd: PATH_TMP_MERGE })
-    console.error(clc.red(`[ERROR] Encountered an error while merging mod ${modName}.\n${(error as Error)}`))
+    logError('[ERROR] Encountered an error while merging', error as Error)
   }
 }
 
@@ -255,7 +270,7 @@ const merge = async () => {
     const mods = await readdir(PATH_TMP_EXTRACT, { recursive: false })
     await sequential(mods, async (mod) => mergeMod(mod))
   } catch (error) {
-    console.error(clc.red(`[ERROR] Encountered an error while merging mods.\n${(error as Error)}`))
+    logError('[ERROR] Encountered an error', error as Error)
   }
 }
 
@@ -285,7 +300,7 @@ const pack = async () => {
     const output = join(PATH_OUTPUT, 'merged.pak')
     await run(CONFIG.wine, [CONFIG.psarcpacker, 'create', '-a', '--zlib', `--inputfile=${input}`, `--output=${output}`], { cwd: PATH_TMP_MERGE })
   } catch (error) {
-    console.error(clc.red(`[ERROR] Encountered an error while packing mods.\n${(error as Error).stack || ''}`))
+    logError('[ERROR] Encountered an error while packing mods.', error as Error)
   }
 }
 
@@ -309,6 +324,16 @@ const main = async () => {
   await merge()
   await pack()
   await clean()
+
+  console.log('Finished with :')
+
+  if (STATS.warnings.length) {
+    console.log(STATS.warnings.length > 0 ? clc.yellow(STATS.warnings.length) : STATS.warnings.length)
+  }
+
+  if (STATS.errors.length) {
+    console.log(STATS.errors.length > 0 ? clc.red(STATS.errors.length) : STATS.errors.length)
+  }
 }
 
 main()
