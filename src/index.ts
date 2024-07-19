@@ -284,6 +284,7 @@ const pack = async () => {
 
     const files = await glob(join(PATH_TMP_MERGE, '**/*'), { nodir: true })
     await sequential(files, async (file) => {
+      console.log(`\tPacking ${file}...`)
       if (file.endsWith('.EXML')) {
         await run(CONFIG.mbincompiler, [file], { cwd: PATH_TMP_MERGE })
         await remove(file)
@@ -328,11 +329,13 @@ const main = async () => {
   console.log('Finished with :')
 
   if (STATS.warnings.length) {
-    console.log(STATS.warnings.length > 0 ? clc.yellow(STATS.warnings.length) : STATS.warnings.length)
+    console.log(`\t${STATS.warnings.length > 0 ? clc.yellow(STATS.warnings.length) : STATS.warnings.length} warnings`)
+    STATS.warnings.forEach((warning) => console.log(clc.yellow(`\t\t${warning}`)))
   }
 
   if (STATS.errors.length) {
-    console.log(STATS.errors.length > 0 ? clc.red(STATS.errors.length) : STATS.errors.length)
+    console.log(`\t${STATS.errors.length > 0 ? clc.red(STATS.errors.length) : STATS.errors.length} errors`)
+    STATS.errors.forEach((error) => console.log(`\t\t${clc.red(error)}`))
   }
 }
 
