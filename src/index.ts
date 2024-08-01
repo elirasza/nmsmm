@@ -1,4 +1,5 @@
 import clc from 'cli-color'
+import pluralize from 'pluralize'
 import { basename, join, resolve } from 'path'
 import { copyFile, readFile, readdir, writeFile } from 'fs/promises'
 import { constants, emptyDirSync, move, remove } from 'fs-extra'
@@ -7,7 +8,7 @@ import { run } from './utils/process'
 import { sequential } from './utils/promises'
 import { createDirectory, isDirectory, isFile, isFileOfType } from './utils/fs'
 
-const PATH_LIB_MBINCOMPILER = resolve('lib/MBINCompiler/Build/Release/net7.0/linux-x64/MBINCompiler')
+const PATH_LIB_MBINCOMPILER = resolve('lib/MBINCompiler/Build/Release/net7.0/linux-x64/publish/MBINCompiler')
 const PATH_LIB_PSARC = resolve('lib/psarc/bin/rls/psarc')
 const PATH_LIB_PSARCPACKER = resolve('lib/psarcpacker/psarc.exe')
 const PATH_MODS = resolve('mods')
@@ -43,7 +44,7 @@ const logWarning = (message: string) => {
 }
 
 const logError = (message: string, error: Error) => {
-  console.error(clc.red(`${message}.\n${(error as Error).stack || ''}`))
+  console.error(clc.red(`${message}\n${(error as Error).stack || ''}`))
   STATS.errors.push(message)
 }
 
@@ -255,7 +256,7 @@ const mergeMod = async (mod: string) => {
     await run('git', ['branch', '-f', 'merge'], { cwd: PATH_TMP_MERGE })
   } catch (error) {
     await run('git', ['rebase', '--abort'], { cwd: PATH_TMP_MERGE })
-    logError('[ERROR] Encountered an error while merging', error as Error)
+    logError(`[ERROR] Encountered an error while merging ${modName}.`, error as Error)
   }
 }
 
@@ -264,13 +265,13 @@ const merge = async () => {
   try {
     await run('git', ['init'], { cwd: PATH_TMP_MERGE })
     await run('git', ['add', '.'], { cwd: PATH_TMP_MERGE })
-    await run('git', ['commit', '-m', 'base'], { cwd: PATH_TMP_MERGE })
+    await run('git', ['commit', '--allow-empty', '-m', 'base'], { cwd: PATH_TMP_MERGE })
     await run('git', ['checkout', '-b', 'merge'], { cwd: PATH_TMP_MERGE })
 
     const mods = await readdir(PATH_TMP_EXTRACT, { recursive: false })
     await sequential(mods, async (mod) => mergeMod(mod))
   } catch (error) {
-    logError('[ERROR] Encountered an error', error as Error)
+    logError('[ERROR] Encountered an error while merging mods.', error as Error)
   }
 }
 
@@ -326,7 +327,7 @@ const main = async () => {
   await pack()
   await clean()
 
-  console.log('Finished with :')
+  console.log(`[DONE] Finished with ${pluralize('warning', STATS.warnings.length, true)} and ${pluralize('error', STATS.errors.length, true)}.`)
 
   if (STATS.warnings.length) {
     console.log(`\t${STATS.warnings.length > 0 ? clc.yellow(STATS.warnings.length) : STATS.warnings.length} warnings`)

@@ -17,9 +17,11 @@
   "dependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/glob": "^8.1.0",
+    "@types/pluralize": "^0.0.33",
     "cli-color": "^2.0.4",
     "fs-extra": "^11.2.0",
-    "glob": "^10.3.12"
+    "glob": "^10.3.12",
+    "pluralize": "^8.0.0"
   },
   "devDependencies": {
     "@types/cli-color": "^2.0.6",
