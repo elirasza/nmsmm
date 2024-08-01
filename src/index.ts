@@ -44,7 +44,7 @@ const logWarning = (message: string) => {
 }
 
 const logError = (message: string, error: Error) => {
-  console.error(clc.red(`${message}\n${(error as Error).stack || ''}`))
+  console.error(clc.red(`${message}\n${(error as Error) || ''}`))
   STATS.errors.push(message)
 }
 
