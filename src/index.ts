@@ -207,6 +207,7 @@ const extractMod = async (mod: string) => {
         await run(CONFIG.mbincompiler, [mbin], { cwd: PATH_TMP_EXTRACT })
       } catch {
         await move(mbin, join(PATH_TMP_MERGE, name))
+        await remove(join(PATH_TMP_MERGE, name.replace('.MBIN', '.EXML')))
         logWarning(`[WARNING] Could not extract ${name}, passing it as-is.`)
       }
     })
@@ -250,7 +251,7 @@ const mergeMod = async (mod: string) => {
     })
 
     await run('git', ['add', '.'], { cwd: PATH_TMP_MERGE })
-    await run('git', ['commit', '-m', modName], { cwd: PATH_TMP_MERGE })
+    await run('git', ['commit', '--allow-empty', '-m', modName], { cwd: PATH_TMP_MERGE })
     await run('git', ['checkout', '-b', modName.replaceAll(' ', '_')], { cwd: PATH_TMP_MERGE })
     await run('git', ['rebase', 'merge'], { cwd: PATH_TMP_MERGE })
     await run('git', ['branch', '-f', 'merge'], { cwd: PATH_TMP_MERGE })
