@@ -287,13 +287,17 @@ const pack = async () => {
     const files = await glob(join(PATH_TMP_MERGE, '**/*'), { nodir: true })
     await sequential(files, async (file) => {
       console.log(`\tPacking ${file}...`)
-      if (file.endsWith('.EXML')) {
-        await run(CONFIG.mbincompiler, [file], { cwd: PATH_TMP_MERGE })
-        await remove(file)
+      try {
+        if (file.endsWith('.EXML')) {
+          await run(CONFIG.mbincompiler, [file], { cwd: PATH_TMP_MERGE })
+          await remove(file)
 
-        list.push(file.replace(`${PATH_TMP_MERGE}/`, '').replace('.EXML', '.MBIN'))
-      } else {
-        list.push(file.replace(`${PATH_TMP_MERGE}/`, ''))
+          list.push(file.replace(`${PATH_TMP_MERGE}/`, '').replace('.EXML', '.MBIN'))
+        } else {
+          list.push(file.replace(`${PATH_TMP_MERGE}/`, ''))
+        }
+      } catch (error) {
+        logError(`[ERROR] Encountered an error while packing ${file}.`, error as Error)
       }
     })
 
