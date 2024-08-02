@@ -212,7 +212,7 @@ const extractMod = async (mod: string) => {
       }
     })
 
-    await Promise.all([target, ...await glob(join(targetOutput, '*.txt')), ...mbins].map((residual) => remove(residual)))
+    await Promise.all([target, ...await glob(join(targetOutput, '*.txt')), ...await glob(join(targetOutput, '*.lua')), ...mbins].map((residual) => remove(residual)))
   } catch (error) {
     logError(`[ERROR] Encountered an error while extracting ${mod}.`, error as Error)
   }
@@ -312,6 +312,7 @@ const pack = async () => {
 }
 
 const clean = async () => {
+  emptyDirSync(PATH_TMP_BANKS)
   emptyDirSync(PATH_TMP_EXTRACT)
   emptyDirSync(PATH_TMP_MERGE)
 }
