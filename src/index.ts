@@ -305,7 +305,7 @@ const pack = async () => {
     await writeFile(input, list.sort().join('\n'))
 
     const output = join(PATH_OUTPUT, 'merged.pak')
-    await run(CONFIG.wine, [CONFIG.psarcpacker, 'create', '-a', '--zlib', `--inputfile=${input}`, `--output=${output}`], { cwd: PATH_TMP_MERGE })
+    await run(CONFIG.wine, [CONFIG.psarcpacker, 'create', '-a', '-N', `--inputfile=${input}`, `--output=${output}`], { cwd: PATH_TMP_MERGE })
   } catch (error) {
     logError('[ERROR] Encountered an error while packing mods.', error as Error)
   }
